@@ -1,34 +1,7 @@
-use std::{env, process::{self}, io::BufRead};
-use exitcode;
+use std::env;
 use mytodo::db::{create_task, establish_connection, query_task,
-                 update_task, query_display_task};
+                 read_input, update_task, query_display_task};
 const PENDING_TASK: &str = "<PendingTask>";
-
-fn read_vec<T>() -> Vec<T>
-where
-    T: std::str::FromStr,
-    <T as std::str::FromStr>::Err: std::fmt::Debug,
-{
-    std::io::stdin()
-        .lock()
-        .lines()
-        .next()
-        .unwrap()
-        .unwrap()
-        .trim()
-        .split_whitespace()
-        .map(|s| -> T {
-            s.parse::<T>().unwrap_or_else(|e| {
-                eprintln!("Could not parse input '{s}': {:?}", e);
-                /*
-                Shut down in a non-panicky manner due to
-                user's input data being incorrect in some way.
-                */
-                 process::exit(exitcode::DATAERR);   
-            })
-        })
-        .collect::<Vec<T>>()
-}
 
 fn help() {
     println!("subcommands:");
@@ -45,8 +18,8 @@ fn new_task(args: &[String]) {
         return;
     }
 
-    let conn = establish_connection();
-    create_task(&conn, &args[0]);
+    let conn = &mut establish_connection();
+    create_task(conn, &args[0]);
 }
 
 fn show_tasks(args: &[String]) {
@@ -56,15 +29,15 @@ fn show_tasks(args: &[String]) {
         return;
     }
 
-    let conn = establish_connection();
-    let post = query_task(&conn);
+    let conn = &mut establish_connection();
+    let post = query_task(conn);
     match post.len() == 0 {
         true => {
             println!("\nThere are 0 {PENDING_TASK} to show!");
         }
         false => {
             print!("ID    TITLE\n---   -----\n");
-            for task in query_task(&conn) {
+            for task in query_task(conn) {
                 print!("{}     {}: {PENDING_TASK}\n", task.id, task.title );
             }
         }
@@ -78,8 +51,8 @@ fn update_tasks(args: &[String]) {
         return;
     }
 
-    let conn = establish_connection();
-    let post = query_task(&conn);
+    let conn = &mut establish_connection();
+    let post = query_task(conn);
     match post.len() == 0 {
         true => {
             println!("\nThere are 0 {PENDING_TASK} to update!");
@@ -87,7 +60,7 @@ fn update_tasks(args: &[String]) {
         false => {
             print!("\n\nEnter one or more ID's seperated by a\nspace to update a {PENDING_TASK} below.\n");
             print!("\nID    TITLE\n---   -----\n");
-            for task in query_task(&conn) {
+            for task in query_task(conn) {
                 print!("{}     {}: {PENDING_TASK}\n", task.id, task.title );
             }
             print!("\n"); 
@@ -95,13 +68,13 @@ fn update_tasks(args: &[String]) {
             /*
             Initialize ids with the user's input.
             */
-            let ids = read_vec();
+            let ids = read_input();
 
-               match update_task(ids.clone(), &conn) {
+               match update_task(ids.clone(), conn) {
                     Ok(n) => {
                         if n > 0 {
                             println!("\nID    TITLE\n---   -----");
-                            for task in query_display_task(&conn) {
+                            for task in query_display_task(conn) {
                                 match task.done == false {
                                     true => {
                                         print!("{}     {}:  {PENDING_TASK}\n", task.id, task.title );
