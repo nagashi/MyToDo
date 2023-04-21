@@ -1,8 +1,6 @@
-/*
-@generated automatically by Diesel CLI.
-*/
+// @generated automatically by Diesel CLI.
 
-table! {
+diesel::table! {
     task (id) {
         id -> Integer,
         title -> Text,

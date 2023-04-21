@@ -6,10 +6,16 @@ pub struct NewTask<'a> {
     pub title: &'a str,
 }
 
-#[derive(Queryable, Identifiable)]
+#[derive(Queryable, Debug)]
 #[diesel(table_name = task)]
 pub struct Task {
     pub id: i32,
     pub title: String,
     pub done: bool,
+}
+
+#[derive(QueryableByName, Debug)]
+#[diesel(table_name = task)]
+pub struct QueryableTask {
+    pub title: String,
 }
