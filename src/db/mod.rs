@@ -1,7 +1,14 @@
-use diesel::{prelude::*, sqlite::SqliteConnection,};
-use self::{schema::task::{dsl::{done, id}, self}};
-use std::{process::{self}, io::BufRead};
+use diesel::{prelude::*, sqlite::SqliteConnection};
+
+use self::schema::task::{
+    self,
+    dsl::{done, id},
+};
 use exitcode;
+use std::{
+    io::BufRead,
+    process::{self},
+};
 
 pub mod models;
 pub mod schema;
@@ -33,7 +40,7 @@ pub fn query_display_task(connection: &mut SqliteConnection) -> Vec<models::Task
         .expect("Error loading pending & non-pending tasks")
 }
 
-pub fn update_task( 
+pub fn update_task(
     ids: Vec<i32>,
     connection: &mut SqliteConnection,
 ) -> Result<usize, diesel::result::Error> {
@@ -53,45 +60,32 @@ pub fn delete_task(
         .execute(connection)
 }
 
-pub fn max_title()  {
- use diesel::sql_query;
-// use diesel::sql_types::Text;
- //pub struct QueryableTask;
-  //use diesel::dsl::max;
-  //use diesel::deserialize::Result;
-  //use diesel::result::Error;
-  //use schema::task::dsl::*;
- // use self::schema::task::dsl::title;
-  // use self::schema::task::dsl::title;
- // use diesel::prelude::*;
- // use diesel::dsl::max;
-  //use diesel::expression::is_aggregate::{No, Yes};
- 
+pub fn max_title() -> i32 {
+    use diesel::sql_query;
 
     let conn: &mut SqliteConnection = &mut establish_connection();
-/*     let my_data = task::table.select(title)
-    .filter(sql("max(length(title))"))
-    .get_result::<Text>(conn); */
-    let data: QueryResult<Vec<models::Task>> = task::table.load::<models::Task>(conn); 
-    /* {
-        Ok(d) => {
-            println!("d: {:?}", d)
-            
-        }
-        Err(e) => eprint!("Error: {e}")
-    }; */
 
-    let my_data: QueryResult<Vec<models::QueryableTask>> = sql_query("Select max(length(title)) as title from task")
+    let my_data: QueryResult<Vec<models::QueryableTask>> =
+        sql_query("Select max(length(title)) as title from task")
             .load::<models::QueryableTask>(conn);
 
-    for task in &my_data {
-        println!("{:?}\n", task);
-    }
-    
-       println!("{:?}\n\n", data);
-       println!("my_data: {:?}", my_data);
-    
-   
+    /*
+    Remove the Vec
+    */
+    let binding = my_data.unwrap();
+    /*
+    Get the value
+    */
+    let y = binding.get(0).unwrap();
+    /*
+    Convert the value to i32
+    */
+    let y = y.title.parse::<i32>().unwrap();
+
+    /*
+    Return value
+    */
+    return y;
 }
 
 pub fn read_input<T>() -> Vec<T>

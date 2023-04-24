@@ -2,4 +2,3 @@
 extern crate diesel;
 
 pub mod db;
-

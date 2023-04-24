@@ -1,7 +1,8 @@
 use mytodo::db::{
-    create_task, delete_task, establish_connection, query_display_task, query_task, read_input,
-    update_task, max_title
+    create_task, delete_task, establish_connection, max_title, query_display_task, query_task,
+    read_input, update_task,
 };
+use pad::{Alignment, PadStr};
 use std::env;
 
 const PENDING_TASK: &str = "<PendingTask>";
@@ -46,9 +47,28 @@ fn show_tasks(args: &[String]) {
             println!("\nThere are 0 {PENDING_TASK} to show!");
         }
         false => {
-            print!("ID    TITLE\n---   -----\n");
+            let nbr = max_title() as usize;
+
+            let _id = "ID".pad_to_width_with_alignment(6, Alignment::Left);
+            let _title = "TITLE".pad_to_width_with_alignment(nbr + 3, Alignment::Left);
+            let _done = "DONE".pad_to_width_with_alignment(nbr + 3, Alignment::Left);
+
+            let title_ = "-".repeat(nbr);
+            let done_ = "-".repeat(PENDING_TASK.len());
+            print!(
+                "\n{}{}{}\n---   {}   {}\n",
+                _id, _title, _done, title_, done_
+            );
             for task in query_task(&mut establish_connection()) {
-                print!("{}     {} {}: {PENDING_TASK}\n", task.id, task.title, task.title.len());
+                print!(
+                    "{}{}{PENDING_TASK}\n",
+                    task.id
+                        .to_string()
+                        .pad_to_width_with_alignment(6, Alignment::Left),
+                    task.title
+                        .to_string()
+                        .pad_to_width_with_alignment(nbr + 3, Alignment::Left)
+                );
             }
         }
     };
@@ -140,16 +160,14 @@ fn delete_tasks(args: &[String]) {
             let ids = read_input();
 
             match delete_task(ids.clone(), conn) {
-                Ok(n) => {
-                    match n > 0 {
-                        true => {
-                            println!("{n} valid deletes for IDs {:?}", &ids);
-                        }
-                        false => {
-                            println!("{n} valid deletes for IDs {:?}", &ids);
-                        }
+                Ok(n) => match n > 0 {
+                    true => {
+                        println!("{n} valid deletes for IDs {:?}", &ids);
                     }
-                }
+                    false => {
+                        println!("{n} valid deletes for IDs {:?}", &ids);
+                    }
+                },
                 Err(e) => {
                     eprintln!("Error deleting task(s): {e} with ID(s) {:?}", &ids);
                 }
