@@ -1,18 +1,15 @@
-use mytodo::db::{
-    create_task, delete_task, establish_connection, max_title, query_display_task, query_task,
-    read_input, update_task,
-};
-use pad::{Alignment, PadStr};
+use mytodo::db::*;
 use std::env;
 
 const PENDING_TASK: &str = "<PendingTask>";
 
 fn help() {
     println!("subcommands:");
-    println!("    new<id, title>: create a new task");
+    println!("    new: String argument needed to create a new task");
     println!("    show<id, title>: show pending task(s)");
     println!("    update<id, title>: update pending task(s)");
-    println!("    delete<id, title>: delete task(s)")
+    println!("    delete: No arguments needed to call delete_tasks()");
+    println!("    max: No arguments needed to call max_title()");
 }
 
 fn new_task(args: &[String]) {
@@ -27,12 +24,12 @@ fn new_task(args: &[String]) {
 
 fn max_task(args: &[String]) {
     if args.len() > 1 {
-        println!("\nnew: missing <title>.  Add a task name.");
+        println!("\nmax: No argument needed.");
         //help();
         return;
     }
 
-    max_title();
+    println!("{}", max_title());
 }
 
 fn show_tasks(args: &[String]) {
@@ -42,34 +39,26 @@ fn show_tasks(args: &[String]) {
         return;
     }
 
-    match query_task(&mut establish_connection()).len() == 0 {
-        true => {
+    match query_task(&mut establish_connection()).len() > 0 {
+        false => {
             println!("\nThere are 0 {PENDING_TASK} to show!");
         }
-        false => {
-            let nbr = max_title() as usize;
+        true => {
+            let nbr = display_header();
 
-            let _id = "ID".pad_to_width_with_alignment(6, Alignment::Left);
-            let _title = "TITLE".pad_to_width_with_alignment(nbr + 3, Alignment::Left);
-            let _done = "DONE".pad_to_width_with_alignment(nbr + 3, Alignment::Left);
-
-            let title_ = "-".repeat(nbr);
-            let done_ = "-".repeat(PENDING_TASK.len());
-            print!(
-                "\n{}{}{}\n---   {}   {}\n",
-                _id, _title, _done, title_, done_
-            );
-            for task in query_task(&mut establish_connection()) {
-                print!(
-                    "{}{}{PENDING_TASK}\n",
-                    task.id
-                        .to_string()
-                        .pad_to_width_with_alignment(6, Alignment::Left),
-                    task.title
-                        .to_string()
-                        .pad_to_width_with_alignment(nbr + 3, Alignment::Left)
-                );
-            }
+            query_task(&mut establish_connection())
+                .into_iter()
+                .for_each(|task| {
+                    print!(
+                        "{}{}{PENDING_TASK}\n",
+                        task.id
+                            .to_string()
+                            .pad_to_width_with_alignment(6, Alignment::Left),
+                        task.title
+                            .to_string()
+                            .pad_to_width_with_alignment(nbr + 3, Alignment::Left)
+                    );
+                });
         }
     };
 }
@@ -81,16 +70,27 @@ fn update_tasks(args: &[String]) {
         return;
     }
 
-    match query_task(&mut establish_connection()).len() == 0 {
-        true => {
+    match query_task(&mut establish_connection()).len() > 0 {
+        false => {
             println!("\nThere are 0 {PENDING_TASK} to update!");
         }
-        false => {
+        true => {
             print!("\n\nEnter one or more ID's seperated by a\nspace to update a {PENDING_TASK} below.\n");
-            print!("\nID    TITLE\n---   -----\n");
-            for task in query_task(&mut establish_connection()) {
-                print!("{}     {}: {PENDING_TASK}\n", task.id, task.title);
-            }
+            let nbr = display_header();
+
+            query_task(&mut establish_connection())
+                .into_iter()
+                .for_each(|task| {
+                    print!(
+                        "{}{}{PENDING_TASK}\n",
+                        task.id
+                            .to_string()
+                            .pad_to_width_with_alignment(6, Alignment::Left),
+                        task.title
+                            .to_string()
+                            .pad_to_width_with_alignment(nbr + 3, Alignment::Left)
+                    );
+                });
             print!("\n");
 
             /*
@@ -102,19 +102,36 @@ fn update_tasks(args: &[String]) {
             match update_task(ids.clone(), &mut establish_connection()) {
                 Ok(n) => {
                     if n > 0 {
-                        println!("\nID    TITLE\n---   -----");
-                        for task in query_display_task(&mut establish_connection()) {
-                            match task.done == false {
+                        let nbr = display_header();
+
+                        query_display_task(&mut establish_connection())
+                            .into_iter()
+                            .for_each(|task| match task.done == false {
                                 true => {
-                                    print!("{}     {}:  {PENDING_TASK}\n", task.id, task.title);
+                                    print!(
+                                        "{}{}{PENDING_TASK}\n",
+                                        task.id
+                                            .to_string()
+                                            .pad_to_width_with_alignment(6, Alignment::Left),
+                                        task.title
+                                            .to_string()
+                                            .pad_to_width_with_alignment(nbr + 3, Alignment::Left)
+                                    );
                                 }
                                 false => {
-                                    print!("{}     {}\n", task.id, task.title);
+                                    print!(
+                                        "{}{}\n",
+                                        task.id
+                                            .to_string()
+                                            .pad_to_width_with_alignment(6, Alignment::Left),
+                                        task.title
+                                            .to_string()
+                                            .pad_to_width_with_alignment(nbr + 3, Alignment::Left)
+                                    );
                                 }
-                            }
-                        }
+                            });
                     } else {
-                        eprintln!("{n} valid Updates for ID(s) {:?}", &ids);
+                        println!("{n} valid Updates for ID(s) {:?}", &ids);
                     }
                 }
                 Err(e) => {
@@ -134,23 +151,40 @@ fn delete_tasks(args: &[String]) {
 
     let conn = &mut establish_connection();
 
-    match query_display_task(conn).len() == 0 {
-        true => {
+    match query_display_task(conn).len() > 0 {
+        false => {
             println!("\nThere are no tasks to delete!");
         }
-        false => {
-            print!("\n\nEnter one or more numerical ID's seperated\nby a space to delete one or more tasks below.\n");
-            print!("\n");
-            for task in query_display_task(conn) {
-                match task.done == false {
+        true => {
+            println!("\n\nEnter one or more numerical ID's seperated\nby a space to delete one or more tasks below.");
+            let nbr = display_header();
+
+            query_display_task(conn)
+                .into_iter()
+                .for_each(|task| match task.done == false {
                     true => {
-                        print!("{}     {}:  {PENDING_TASK}\n", task.id, task.title);
+                        print!(
+                            "{}{}{PENDING_TASK}\n",
+                            task.id
+                                .to_string()
+                                .pad_to_width_with_alignment(6, Alignment::Left),
+                            task.title
+                                .to_string()
+                                .pad_to_width_with_alignment(nbr + 3, Alignment::Left)
+                        );
                     }
                     false => {
-                        print!("{}     {}\n", task.id, task.title);
+                        print!(
+                            "{}{}\n",
+                            task.id
+                                .to_string()
+                                .pad_to_width_with_alignment(6, Alignment::Left),
+                            task.title
+                                .to_string()
+                                .pad_to_width_with_alignment(nbr + 3, Alignment::Left)
+                        );
                     }
-                }
-            }
+                });
             print!("\n");
 
             /*

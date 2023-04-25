@@ -5,6 +5,7 @@ use self::schema::task::{
     dsl::{done, id},
 };
 use exitcode;
+pub use pad::{Alignment, PadStr};
 use std::{
     io::BufRead,
     process::{self},
@@ -70,22 +71,34 @@ pub fn max_title() -> i32 {
             .load::<models::QueryableTask>(conn);
 
     /*
-    Remove the Vec
+    Get the vector from QueryResult.
     */
-    let binding = my_data.unwrap();
-    /*
-    Get the value
-    */
-    let y = binding.get(0).unwrap();
-    /*
-    Convert the value to i32
-    */
-    let y = y.title.parse::<i32>().unwrap();
-
-    /*
-    Return value
-    */
-    return y;
+    if let Ok(binding) = my_data {
+        /*
+        Get the value from the vector element.
+        Based on the SQL statement, there
+        should only be one value.
+        */
+        let y = &binding[0].title;
+        /*
+        Whenever you parse without an unwrap(),
+        you get a Result value.  So, if the
+        conversion is ok, return the value.
+        */
+        if let Ok(y) = y.parse::<i32>() {
+            return y;
+        } else {
+            /*
+            Conversion error occured.
+            */
+            return 0;
+        }
+    } else {
+        /*
+        Error occured.
+        */
+        return 0;
+    }
 }
 
 pub fn read_input<T>() -> Vec<T>
@@ -105,10 +118,12 @@ where
         .next()
         /*
         This unwrap() returns Result<String, Error>
+        from an Option.
         */
         .unwrap()
         /*
         This unwrap() returns a String
+        from a Result
         */
         .unwrap()
         .trim()
@@ -124,4 +139,33 @@ where
             })
         })
         .collect::<Vec<T>>()
+}
+
+pub fn display_header() -> usize {
+    let nbr = max_title() as usize;
+    let pending_task: &str = "<PendingTask>";
+
+    match nbr > 0 {
+        true => {
+            let _id = "ID".pad_to_width_with_alignment(6, Alignment::Left);
+            let _title = "TITLE".pad_to_width_with_alignment(nbr + 3, Alignment::Left);
+            let _done = "DONE".pad_to_width_with_alignment(nbr + 3, Alignment::Left);
+
+            let id_ = "-"
+                .repeat(3)
+                .pad_to_width_with_alignment(6, Alignment::Left);
+            let title_ = "-"
+                .repeat(nbr)
+                .pad_to_width_with_alignment(nbr + 3, Alignment::Left);
+            let done_ = "-"
+                .repeat(pending_task.len())
+                .pad_to_width_with_alignment(nbr + 3, Alignment::Left);
+
+            print!("\n{}{}{}\n{}{}{}\n", _id, _title, _done, id_, title_, done_);
+        }
+        false => {
+            print!("");
+        }
+    }
+    nbr
 }
