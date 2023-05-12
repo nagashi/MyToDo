@@ -6,8 +6,9 @@ pub struct NewTask<'a> {
     pub title: &'a str,
 }
 
-#[derive(Queryable, Debug)]
+#[derive(Queryable, Serialize, Debug)]
 #[diesel(table_name = task)]
+
 pub struct Task {
     pub id: i32,
     pub title: String,

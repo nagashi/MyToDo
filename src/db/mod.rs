@@ -8,7 +8,7 @@ use exitcode;
 pub use pad::{Alignment, PadStr};
 use std::{
     io::BufRead,
-    process::{self},
+    process,
 };
 
 pub mod models;
